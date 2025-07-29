@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLESS-Reality URL to Sing-box Outbound Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #121212;
+            color: #f1f1f1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.8rem;
+            color: #e0e0e0;
+        }
+
+        textarea, input, button, pre {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+
+        textarea, input {
+            background-color: #333;
+            color: #f1f1f1;
+            border: 1px solid #444;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #e0e0e0;
+            color: #121212;
+            border: none;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        pre {
+            background-color: #2c2c2c;
+            color: #f1f1f1;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            padding: 10px;
+            margin-top: 10px;
+            display: none;
+            cursor: pointer;
+            position: relative;
+        }
+
+        pre::after {
+            content: "Click to copy";
+            font-size: 0.9rem;
+            color: #777;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s, visibility 0.5s;
+            z-index: 9999;
+        }
+
+        .toast.show {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>VLESS-Reality URL to Sing-box Outbound Converter</h2>
+        <textarea id="vlessUrl" rows="4" placeholder="Paste your VLESS REALITY URL here"></textarea>
+        <button onclick="convertUrl()">Convert to JSON</button>
+        <pre id="output" onclick="copyToClipboard()"></pre>
+    </div>
+
+    <div id="toast" class="toast">Copied to clipboard!</div>
+
+    <script>
+        function convertUrl() {
+            const url = document.getElementById('vlessUrl').value;
+
+            try {
+                const modifiedUrl = replaceVlessScheme(url);
+                let parsedUrl = new URL(modifiedUrl);
+                const uuid = parsedUrl.username || '';
+                const host = parsedUrl.hostname || '';
+                const port = parsedUrl.port || '';
+                const flow = parsedUrl.searchParams.get('flow') || '';
+                const sni = parsedUrl.searchParams.get('sni') || '';
+                const fingerprint = parsedUrl.searchParams.get('fp') || '';
+                const publicKey = parsedUrl.searchParams.get('pbk') || '';
+                const shortId = parsedUrl.searchParams.get('sid') || '';
+		const tag = parsedUrl.hash ? parsedUrl.hash.slice(1) : 'vless-out';
+
+                const jsonOutput = {
+                    type: "vless",
+                    tag: tag,
+                    server: host,
+                    server_port: parseInt(port, 10),
+                    uuid: uuid,
+                    flow: flow,
+                    tls: {
+                        enabled: true,
+                        server_name: sni,
+                        utls: {
+                            enabled: true,
+                            fingerprint: fingerprint
+                        },
+                        reality: {
+                            enabled: true,
+                            public_key: publicKey,
+                            short_id: shortId
+                        }
+                    }
+                };
+
+                document.getElementById('output').textContent = JSON.stringify(jsonOutput, null, 2);
+                document.getElementById('output').style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('output').textContent = "Error parsing URL. Please ensure the format is correct.";
+            }
+        }
+
+        function replaceVlessScheme(url) {
+            if (url.startsWith('vless://')) {
+                return 'http://' + url.slice(8);
+            }
+            return url;
+        }
+
+
+        function copyToClipboard() {
+            const outputText = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(outputText).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }).catch(err => {
+                alert('Failed to copy text: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>
